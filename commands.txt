@@ -1,0 +1,134 @@
+docker build -t discord-bot-image:latest -f Dockerfile .
+
+#   'Sending build context to Docker daemon  228.4kB
+#   Step 1/17 : FROM mcr.microsoft.com/dotnet/runtime:5.0 AS base
+#   5.0: Pulling from dotnet/runtime
+#   b4d181a07f80: Pull complete 
+#   7a7a99b42641: Pull complete 
+#   67ea9219f1a1: Pull complete 
+#   4e53bc49ed15: Pull complete 
+#   Digest: sha256:2739309d8cc1472cd8feb2f185d782b60aa5afc252899382d6afd46173e7c4c0
+#   Status: Downloaded newer image for mcr.microsoft.com/dotnet/runtime:5.0
+#    ---> ad023df299bf
+#   Step 2/17 : WORKDIR /app
+#    ---> Running in 134f44ae87a1
+#   Removing intermediate container 134f44ae87a1
+#    ---> 56736a32e34e
+#   Step 3/17 : RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
+#    ---> Running in 6615c1e4c687
+#   Adding user `appuser' ...
+#   Adding new group `appuser' (5678) ...
+#   Adding new user `appuser' (5678) with group `appuser' ...
+#   Creating home directory `/home/appuser' ...
+#   Copying files from `/etc/skel' ...
+#   Removing intermediate container 6615c1e4c687
+#    ---> 8612be3b7112
+#   Step 4/17 : USER appuser
+#    ---> Running in 86586a6feee7
+#   Removing intermediate container 86586a6feee7
+#    ---> 5f6c566b5a0c
+#   Step 5/17 : FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
+#   5.0: Pulling from dotnet/sdk
+#   b4d181a07f80: Already exists 
+#   7a7a99b42641: Already exists 
+#   67ea9219f1a1: Already exists 
+#   4e53bc49ed15: Already exists 
+#   b09dfc074871: Pull complete 
+#   0dfb7bcc8d61: Pull complete 
+#   a5a312d4e129: Pull complete 
+#   eac5b8a0f36e: Pull complete 
+#   Digest: sha256:ba0ee9dd1222981c5e01e616667a852aac85119631d3dcccb6d4ccd71a9a1163
+#   Status: Downloaded newer image for mcr.microsoft.com/dotnet/sdk:5.0
+#    ---> 1244b0e0554b
+#   Step 6/17 : WORKDIR /src
+#    ---> Running in dfbb31d8a750
+#   Removing intermediate container dfbb31d8a750
+#    ---> 1a96684fe06c
+#   Step 7/17 : COPY ["DotNetDiscordBotAcs.csproj", "./"]
+#    ---> 26e6c2ddd8ca
+#   Step 8/17 : RUN dotnet restore "DotNetDiscordBotAcs.csproj"
+#    ---> Running in 5029f099e072
+#     Determining projects to restore...
+#     Restored /src/DotNetDiscordBotAcs.csproj (in 3.25 sec).
+#   Removing intermediate container 5029f099e072
+#    ---> f794c0884c1e
+#   Step 9/17 : COPY . .
+#    ---> 1f07e6d75ec6
+#   Step 10/17 : WORKDIR "/src/."
+#    ---> Running in db8069968c60
+#   Removing intermediate container db8069968c60
+#    ---> 08b4428585e9
+#   Step 11/17 : RUN dotnet build "DotNetDiscordBotAcs.csproj" -c Release -o /app/build
+#    ---> Running in 61eba1f62bf5
+#   Microsoft (R) Build Engine version 16.10.1+2fd48ab73 for .NET
+#   Copyright (C) Microsoft Corporation. All rights reserved.
+#   
+#     Determining projects to restore...
+#     Restored /src/DotNetDiscordBotAcs.csproj (in 262 ms).
+#     DotNetDiscordBotAcs -> /app/build/DotNetDiscordBotAcs.dll
+#   
+#   Build succeeded.
+#       0 Warning(s)
+#       0 Error(s)
+#   
+#   Time Elapsed 00:00:03.14
+#   Removing intermediate container 61eba1f62bf5
+#    ---> 18cbc6d2d3b9
+#   Step 12/17 : FROM build AS publish
+#    ---> 18cbc6d2d3b9
+#   Step 13/17 : RUN dotnet publish "DotNetDiscordBotAcs.csproj" -c Release -o /app/publish
+#    ---> Running in 3fd569ea213b
+#   Microsoft (R) Build Engine version 16.10.1+2fd48ab73 for .NET
+#   Copyright (C) Microsoft Corporation. All rights reserved.
+#   
+#     Determining projects to restore...
+#     All projects are up-to-date for restore.
+#     DotNetDiscordBotAcs -> /src/bin/Release/net5.0/DotNetDiscordBotAcs.dll
+#     DotNetDiscordBotAcs -> /app/publish/
+#   Removing intermediate container 3fd569ea213b
+#    ---> ce020107df61
+#   Step 14/17 : FROM base AS final
+#    ---> 5f6c566b5a0c
+#   Step 15/17 : WORKDIR /app
+#    ---> Running in f1577d6ed91f
+#   Removing intermediate container f1577d6ed91f
+#    ---> 63577a7b2178
+#   Step 16/17 : COPY --from=publish /app/publish .
+#    ---> b6938cf93a7e
+#   Step 17/17 : ENTRYPOINT ["dotnet", "DotNetDiscordBotAcs.dll"]
+#    ---> Running in dd04217d3b88
+#   Removing intermediate container dd04217d3b88
+#    ---> cd84e47119af
+#   Successfully built cd84e47119af
+#   Successfully tagged discordbot:latest
+
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+az login
+
+az group create --location westus --resource-group DiscordBotRg
+
+az acr create --name DiscordBotAcr --resource-group DiscordBotRg \
+              --sku Basic \
+              --admin-enabled true \
+              --location eastus
+
+az acr login --name DiscordBotAcr
+
+az acr build -r DiscordBotAcr -t discord-bot-image:latest .
+
+ACR_NAME=DiscordBotAcr
+SERVICE_PRINCIPAL_NAME=acr-service-principal
+
+# Obtain the full registry ID for subsequent command args
+ACR_REGISTRY_ID=$(az acr show --name $ACR_NAME --query id --output tsv)
+
+SP_PASSWD=$(az ad sp create-for-rbac --name $SERVICE_PRINCIPAL_NAME --scopes $ACR_REGISTRY_ID --role acrpull --query password --output tsv)
+az ad sp list --display-name $SERVICE_PRINCIPAL_NAME --query [].objectId -o tsv
+az ad sp show --id cfb440ac-c33c-4b06-90b3-157003937da6 --query appId --output tsv
+
+az container create --resource-group DiscordBotRg \
+                    --name discord-bot-container \
+                    --image discordbotacr.azurecr.io/discord-bot-image:latest \
+                    --registry-username f7554587-af2a-4f16-9439-c88c99fcd421 \
+                    --registry-password $SP_PASSWD
