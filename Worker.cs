@@ -29,7 +29,7 @@ namespace DotNetDiscordBotAcs
                 await Task.Delay(1000, stoppingToken);
                 using var discord = new DiscordClient(new DiscordConfiguration()
                 {
-                    Token = _configuration["DiscordBotToken"], // "ODYyMTY3NzY1ODk5ODA0NzQz.YOUaTQ.IR-BcM-w5ZfMi7LkZwD1WzeDP0c",
+                    Token = _configuration["DiscordBotToken"],
                     TokenType = TokenType.Bot,
                     Intents = DiscordIntents.AllUnprivileged     
                 });
