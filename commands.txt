@@ -117,18 +117,18 @@ az acr login --name DiscordBotAcr
 
 az acr build -r DiscordBotAcr -t discord-bot-image:latest .
 
-ACR_NAME=DiscordBotAcr
-SERVICE_PRINCIPAL_NAME=acr-service-principal
-
 # Obtain the full registry ID for subsequent command args
-ACR_REGISTRY_ID=$(az acr show --name $ACR_NAME --query id --output tsv)
+ACR_REGISTRY_ID=$(az acr show --name DiscordBotAcr --query id --output tsv)
 
-SP_PASSWD=$(az ad sp create-for-rbac --name $SERVICE_PRINCIPAL_NAME --scopes $ACR_REGISTRY_ID --role acrpull --query password --output tsv)
-az ad sp list --display-name $SERVICE_PRINCIPAL_NAME --query [].objectId -o tsv
-az ad sp show --id cfb440ac-c33c-4b06-90b3-157003937da6 --query appId --output tsv
+SP_PASSWD=$(az ad sp create-for-rbac --name acr-service-principal --scopes $ACR_REGISTRY_ID --role acrpull --query password --output tsv)
+SP_APP_ID=$(az ad sp list --display-name acr-service-principal --query [0].appId -o tsv)
+
+read -s -p "Enter Discord bot token: " DISCORD_BOT_TOKEN
 
 az container create --resource-group DiscordBotRg \
                     --name discord-bot-container \
                     --image discordbotacr.azurecr.io/discord-bot-image:latest \
-                    --registry-username f7554587-af2a-4f16-9439-c88c99fcd421 \
-                    --registry-password $SP_PASSWD
+                    --registry-username $SP_APP_ID \
+                    --registry-password $SP_PASSWD \
+                    --secure-environment-variables 'DiscordBotToken'=$DISCORD_BOT_TOKEN \
+                    --location eastus
