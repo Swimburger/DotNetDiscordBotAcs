@@ -130,5 +130,5 @@ az container create --resource-group DiscordBotRg \
                     --image discordbotacr.azurecr.io/discord-bot-image:latest \
                     --registry-username $SP_APP_ID \
                     --registry-password $SP_PASSWD \
-                    --secure-environment-variables 'DiscordBotToken'=$DISCORD_BOT_TOKEN \
+                    --secure-environment-variables DiscordBotToken=$DISCORD_BOT_TOKEN \
                     --location eastus

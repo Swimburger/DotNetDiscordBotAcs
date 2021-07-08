@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
+using DSharpPlus.EventArgs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -12,44 +13,48 @@ namespace DotNetDiscordBotAcs
 {
     public class Worker : BackgroundService
     {
-        private readonly ILogger<Worker> _logger;
-        private readonly IConfiguration _configuration;
+        private ILogger<Worker> logger;
+        private IConfiguration configuration;
+        private DiscordClient discordClient;
 
         public Worker(ILogger<Worker> logger, IConfiguration configuration)
         {
-            _logger = logger;
-            _configuration = configuration;
+            this.logger = logger;
+            this.configuration = configuration;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            logger.LogInformation("Starting discord bot");
+
+            discordClient = new DiscordClient(new DiscordConfiguration()
             {
-                _logger.LogInformation("Starting discord bot");
-                await Task.Delay(1000, stoppingToken);
-                using var discord = new DiscordClient(new DiscordConfiguration()
-                {
-                    Token = _configuration["DiscordBotToken"],
-                    TokenType = TokenType.Bot,
-                    Intents = DiscordIntents.AllUnprivileged     
-                });
+                Token = configuration["DiscordBotToken"],
+                TokenType = TokenType.Bot,
+                Intents = DiscordIntents.AllUnprivileged
+            });
 
-                discord.MessageCreated += async (s, e) =>
-                {
-                    if (e.Message.Content.ToLower().StartsWith("ping")) 
-                    {
-                        _logger.LogInformation("pinged, responding with pong!");
-                        await e.Message.RespondAsync("pong!");
-                    }
-                };
+            discordClient.MessageCreated += OnMessageCreated;
+            await discordClient.ConnectAsync();
+        }
 
-                await discord.ConnectAsync();
-                await Task.Delay(-1);
-                
-                _logger.LogInformation("Discord bot stopped");
+        protected override Task ExecuteAsync(CancellationToken stoppingToken) =>  Task.CompletedTask;
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            discordClient.MessageCreated -= OnMessageCreated;
+            await discordClient.DisconnectAsync();
+            discordClient.Dispose();
+            logger.LogInformation("Discord bot stopped");
+        }
+
+        private async Task OnMessageCreated(DiscordClient client, MessageCreateEventArgs e)
+        {
+            if (e.Message.Content.ToLower().StartsWith("ping"))
+            {
+                logger.LogInformation("pinged, responding with pong!");
+                await e.Message.RespondAsync("pong!");
             }
-
-            _logger.LogInformation("Cancellation requested");
         }
     }
 }
