@@ -106,16 +106,19 @@ curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
 az login
 
-az group create --location westus --resource-group DiscordBotRg
+az group create --location eastus --resource-group DiscordBotRg
 
 az acr create --name DiscordBotAcr --resource-group DiscordBotRg \
               --sku Basic \
-              --admin-enabled true \
               --location eastus
 
 az acr login --name DiscordBotAcr
 
 az acr build -r DiscordBotAcr -t discord-bot-image:latest .
+
+# alternatively
+docker tag discord-bot-image:latest discordbotacr.azurecr.io/discord-bot-image:latest
+docker push discordbotacr.azurecr.io/discord-bot-image:latest
 
 # Obtain the full registry ID for subsequent command args
 ACR_REGISTRY_ID=$(az acr show --name DiscordBotAcr --query id --output tsv)
