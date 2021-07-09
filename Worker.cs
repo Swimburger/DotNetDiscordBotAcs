@@ -27,9 +27,10 @@ namespace DotNetDiscordBotAcs
         {
             logger.LogInformation("Starting discord bot");
 
+            string discordBotToken = configuration["DiscordBotToken"];
             discordClient = new DiscordClient(new DiscordConfiguration()
             {
-                Token = configuration["DiscordBotToken"],
+                Token = discordBotToken,
                 TokenType = TokenType.Bot,
                 Intents = DiscordIntents.AllUnprivileged
             });
@@ -50,7 +51,7 @@ namespace DotNetDiscordBotAcs
 
         private async Task OnMessageCreated(DiscordClient client, MessageCreateEventArgs e)
         {
-            if (e.Message.Content.ToLower().StartsWith("ping"))
+            if (e.Message.Content.StartsWith("ping", StringComparison.OrdinalIgnoreCase))
             {
                 logger.LogInformation("pinged, responding with pong!");
                 await e.Message.RespondAsync("pong!");
